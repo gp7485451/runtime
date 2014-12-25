@@ -13,16 +13,42 @@
 // limitations under the License.
 
 (function() {
-    "use strict";
+  "use strict";
 
-    isolate.system.fs.current({
-        action: 'list',
-        path: isolate.data.command,
-    }).then(function(data) {
-        data.forEach(function(name) {
-            console.log(name);
-        });
-    }, function(err) {
-        console.error(err.message);
-    });
+  // TODO: fix hardcoded view width
+  var width = 80;
+  var columns = 4;
+
+  var jsRegex = /\.js$/;
+
+  function printFiles(data) {
+    data.sort();
+
+    for (var i = 0; i < data.length; ++i) {
+      var name = data[i];
+      var color = 'white';
+
+      // TODO: stat every entry
+      if (jsRegex.test(name)) {
+        color = 'lightred';
+      }
+
+      isolate.env.stdout(name, {fg: color, x: (i % columns) * width / columns});
+      if (((columns - 1) === (i % columns)) && (i !== data.length - 1)) {
+        isolate.env.stdout('\n');
+      }
+    }
+
+    isolate.env.stdout('\n');
+  }
+
+  function error(err) {
+    console.error(err.message);
+    isolate.exit();
+  }
+
+  isolate.system.fs.current({
+    action: 'list',
+    path: '/' + isolate.data.command,
+  }).then(printFiles, error);
 })();
