@@ -13,36 +13,42 @@
 // limitations under the License.
 
 (function() {
-    "use strict";
+  "use strict";
 
-    var headerColor = 'yellow';
-    var itemColor = 'white';
+  // TODO: fix hardcoded view width
+  var width = 80;
+  var columns = 4;
 
-    isolate.system.kernel.isolatesInfo().then(function(info) {
-        isolate.env.stdout('Isolate', {x: 0, fg: headerColor});
-        isolate.env.stdout('Events count', {x: 20, fg: headerColor});
-        isolate.env.stdout('Runtime (ms)', {x: 40, fg: headerColor});
+  var jsRegex = /\.js$/;
+
+  function printFiles(data) {
+    data.sort();
+
+    for (var i = 0; i < data.length; ++i) {
+      var name = data[i];
+      var color = 'white';
+
+      // TODO: stat every entry
+      if (jsRegex.test(name)) {
+        color = 'lightred';
+      }
+
+      isolate.env.stdout(name, {fg: color, x: (i % columns) * width / columns});
+      if (((columns - 1) === (i % columns)) && (i !== data.length - 1)) {
         isolate.env.stdout('\n');
+      }
+    }
 
-        for (var i = 0; i < info.length; ++i) {
-            var item = info[i];
-            var name = item.name;
-            var color = itemColor;
+    isolate.env.stdout('\n');
+  }
 
-            if (0 === i) {
-                // Skip idle isolate
-                continue;
-            }
+  function error(err) {
+    console.error(err.message);
+    isolate.exit();
+  }
 
-            if (1 === i) {
-                name = 'kernel';
-            }
-
-            var ms = Number(item.runtime) / 1000;
-            isolate.env.stdout(name, {x: 0, fg: color});
-            isolate.env.stdout(item.eventsCount, {x: 20, fg: color});
-            isolate.env.stdout(ms, {x: 40, fg: color});
-            isolate.env.stdout('\n');
-        }
-    });
+  isolate.system.fs.current({
+    action: 'list',
+    path: '/' + isolate.data.command,
+  }).then(printFiles, error);
 })();
